@@ -6,11 +6,6 @@ from openalea.distributed.execution.data import Data
 def get_id(vid, port):
     return str(vid) + "_" + str(port)
 
-# TODO prendre en compte les arguments  || NOT WORKING
-# def get_id(func, args):
-#     return hashlib.md5(func.__name__ + repr(args)).hexdigest()
-
-
 # TODO: take into account parameters
 def get_id_pname(plant_name, func):
     return hashlib.md5(func.__name__ + plant_name).hexdigest()

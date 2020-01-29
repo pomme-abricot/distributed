@@ -1,6 +1,5 @@
 import dill
 import os
-from openalea.distributed.index.id import get_id
 import errno
 from openalea.distributed.execution.data import Data
 
