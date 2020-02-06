@@ -203,7 +203,7 @@ class ProvCassandra():
     def is_in(self, task_id=None, wf_id=None):
         # check if in cassandra
         if task_id:
-            query = """SELECT task_id FROM task_provenance
+            query = """SELECT * FROM task_provenance
             WHERE task_id=%s
             """
             return self.client.execute(query, [task_id])
@@ -222,6 +222,8 @@ class ProvCassandra():
         dltime =  float(item['dltime'])
         n_input = float(item['n_input'])
         n_output = float(item['n_output'])
+        size_i = float(item['size_input'])
+        size_o = float(item['size_output'])
         node = float(item['node'])
         outputs = json.dumps(item['outputs'])
         inputs = json.dumps(item['inputs'])
@@ -240,12 +242,12 @@ class ProvCassandra():
 
         else:
             query = SimpleStatement("""
-            INSERT INTO task_provenance (task_id, cpu_time, n_input, n_output,
-            node, outputs, inputs)
-            VALUES (%(t_id)s, %(cpu_t)s, %(n_i)s, %(n_o)s, %(n)s, %(out)s, %(i)s)
+            INSERT INTO task_provenance (task_id, cpu_time, dltime, n_input, n_output,
+            size_input, size_output, node, outputs, inputs)
+            VALUES (%(t_id)s, %(cpu_t)s, %(dlt)s, %(n_i)s, %(n_o)s, %(s_i)s, %(s_o)s, %(n)s, %(out)s, %(i)s)
             """, consistency_level=ConsistencyLevel.ONE)
-            self.client.execute(query, dict(t_id=task_id, cpu_t=cpu_time, \
-            n_i=n_input, n_o=n_output, n=node, out=outputs, i=inputs))
+            self.client.execute(query, dict(t_id=task_id, cpu_t=cpu_time, dlt=dltime,\
+            n_i=n_input, n_o=n_output, s_i=size_i, s_o=size_o, n=node, out=outputs, i=inputs))
 
 
     def add_wf_item(self, item, *args, **kwargs):
@@ -348,6 +350,8 @@ class ProvCassandra():
             dltime float,
             n_input float,
             n_output float,
+            size_input float,
+            size_output float,
             node float,
             inputs text,
             outputs text,
