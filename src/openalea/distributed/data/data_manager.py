@@ -40,22 +40,21 @@ def check_data_to_load(vid, pid, fragment_infos):
 
 
 def write_intermediate_data_local(data, data_path):
-    create_dir(os.path.dirname(data_path))
+    # create_dir(os.path.dirname(data_path))
     try :
         with open(data_path, "wb") as f:
-            dill.dump(data.value, f)
+            dill.dump(data, f)
     except IOError as e:
         print e
     except:
-        print "ERROR : value to save not a Data type"
         print "Fail to save : ", data, " to : ", data_path
-    return os.path.getsize(data_path)
+    return 1
 
 def load_intermediate_data_local(data_path):
     with open(data_path, "rb") as f:
         intermediate_data = dill.load(f)
-    new_data = Data(id=os.path.basename(data_path), value=intermediate_data)
-    return new_data
+    # new_data = Data(id=os.path.basename(data_path), value=intermediate_data)
+    return intermediate_data
 
 def write_intermediate_data_ssh(data, dname, data_path, sftp_client=None):
 #     create_dir(os.path.dirname(data_path))
