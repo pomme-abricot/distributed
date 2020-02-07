@@ -107,7 +107,6 @@ class Task_UID_graph(object):
         """
         if vid in (0, 1):  # __in__ and __out__ fucking ports
             return
-
         node = dataflow.node(vid)
 
         # figure out what are the inputs
@@ -132,7 +131,7 @@ class Task_UID_graph(object):
                 pname = fac.outputs[dataflow.local_id(oport)]['name']
                 did = self.output_did(last_exec, pname)
             else:  # lonely input port
-                did = set_id_parameter_data(dataflow, vid)
+                did = set_id_parameter_data(dataflow, vid, port)
                 data = dict(id=did,
                             type=str(port.get('interface')),
                             value=node.get_input(i))
@@ -250,12 +249,12 @@ def set_id_intermediate_data(inputs, dataflow, vid):
     node = dataflow.node(vid)
     did = ""
     for inp in inputs:
-        did+=inp['port']+":"+inp['data']+";"
+        did += inp['port'] + ":" + inp['data'] + ";"
     did += str(node.get_id())
     did = hashlib.sha224(did).hexdigest()
     return did
 
-def set_id_parameter_data(dataflow, vid):
+def set_id_parameter_data(dataflow, vid, port):
     """Get an uid for the input data of the task (vid)
     Only input data of root nodes.
 
@@ -264,6 +263,6 @@ def set_id_parameter_data(dataflow, vid):
     """
     node = dataflow.node(vid)
     did=""
-    did = str(node.factory.name)
-    did = did + str(node.inputs)
+    did = str(port['name'])
+    did = did + str(node.get_input(port['name']))
     return hashlib.sha224(did).hexdigest() 
