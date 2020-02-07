@@ -225,6 +225,7 @@ class ProvCassandra():
         size_i = float(item['size_input'])
         size_o = float(item['size_output'])
         node = float(item['node'])
+        vid = float(item['vid'])
         outputs = json.dumps(item['outputs'])
         inputs = json.dumps(item['inputs'])
         # IF there is an entry for this task: update
@@ -242,11 +243,11 @@ class ProvCassandra():
 
         else:
             query = SimpleStatement("""
-            INSERT INTO task_provenance (task_id, cpu_time, dltime, n_input, n_output,
+            INSERT INTO task_provenance (task_id, vid, cpu_time, dltime, n_input, n_output,
             size_input, size_output, node, outputs, inputs)
-            VALUES (%(t_id)s, %(cpu_t)s, %(dlt)s, %(n_i)s, %(n_o)s, %(s_i)s, %(s_o)s, %(n)s, %(out)s, %(i)s)
+            VALUES (%(t_id)s, %(vid)s, %(cpu_t)s, %(dlt)s, %(n_i)s, %(n_o)s, %(s_i)s, %(s_o)s, %(n)s, %(out)s, %(i)s)
             """, consistency_level=ConsistencyLevel.ONE)
-            self.client.execute(query, dict(t_id=task_id, cpu_t=cpu_time, dlt=dltime,\
+            self.client.execute(query, dict(t_id=task_id, vid=vid, cpu_t=cpu_time, dlt=dltime,\
             n_i=n_input, n_o=n_output, s_i=size_i, s_o=size_o, n=node, out=outputs, i=inputs))
 
 
@@ -346,6 +347,7 @@ class ProvCassandra():
 
             cmd = """CREATE TABLE IF NOT EXISTS task_provenance ( 
             task_id text, 
+            vid float,
             cpu_time float,
             dltime float,
             n_input float,
