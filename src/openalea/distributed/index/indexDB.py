@@ -342,7 +342,6 @@ class IndexCassandra():
                 return False
 
 
-
 def get_site(path):
     # ONLY WORK IF: data paths are /x/x/site/VM/data_id
     return os.path.basename(os.path.dirname(os.path.dirname(path)))
