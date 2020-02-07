@@ -217,6 +217,7 @@ class ProvCassandra():
 
     def add_task_item(self, item, *args, **kwargs):
         # FIRST: FORMAT INPUT:
+        worfklow_id = str(item['wf_id'])
         task_id = str(item['task_id'])
         cpu_time = float(item['cpu_time'])
         dltime =  float(item['dltime'])
@@ -243,11 +244,11 @@ class ProvCassandra():
 
         else:
             query = SimpleStatement("""
-            INSERT INTO task_provenance (task_id, vid, cpu_time, dltime, n_input, n_output,
+            INSERT INTO task_provenance (wf_id, task_id, vid, cpu_time, dltime, n_input, n_output,
             size_input, size_output, node, outputs, inputs)
-            VALUES (%(t_id)s, %(vid)s, %(cpu_t)s, %(dlt)s, %(n_i)s, %(n_o)s, %(s_i)s, %(s_o)s, %(n)s, %(out)s, %(i)s)
+            VALUES (%(wf_id)s, %(t_id)s, %(vid)s, %(cpu_t)s, %(dlt)s, %(n_i)s, %(n_o)s, %(s_i)s, %(s_o)s, %(n)s, %(out)s, %(i)s)
             """, consistency_level=ConsistencyLevel.ONE)
-            self.client.execute(query, dict(t_id=task_id, vid=vid, cpu_t=cpu_time, dlt=dltime,\
+            self.client.execute(query, dict(wf_id=worfklow_id, t_id=task_id, vid=vid, cpu_t=cpu_time, dlt=dltime,\
             n_i=n_input, n_o=n_output, s_i=size_i, s_o=size_o, n=node, out=outputs, i=inputs))
 
 
@@ -346,6 +347,7 @@ class ProvCassandra():
             self.client.set_keyspace(KEYSPACE)
 
             cmd = """CREATE TABLE IF NOT EXISTS task_provenance ( 
+            wf_id text,
             task_id text, 
             vid float,
             cpu_time float,
