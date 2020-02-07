@@ -182,6 +182,7 @@ class IndexCassandra():
             cmd = """CREATE TABLE IF NOT EXISTS data_index ( 
             data_id text, 
             path set<text>, 
+            site set<text>,
             execution_data boolean,
             cache_data boolean,
             PRIMARY KEY (data_id) 
@@ -238,16 +239,19 @@ class IndexCassandra():
                           cassandra_port=index_config.CASSANDRA_PORT,
                           *args, **kwargs)
 
-    def add_data(self, data_id="", path="", exec_data=False, cache_data=False, dict_item=""):
+    def add_data(self, data_id="", path="", site="", exec_data=False, cache_data=False, dict_item=""):
         # FIRST: FORMAT INPUT:
         if dict_item:
             data_id = dict_item['data_id']
             path = dict_item['path']
+            site = dict_item['site']
             exec_data = dict_item.get('exec_data', False)
             cache_data =  dict_item.get('cache_data', False)
         # else the variable are already set
         if type(path) is not set:
             path = set([path])
+        if type(site) is not set:
+            site = set([site])
 
         # IF there is an entry for this data: update
         row = self.data_index.execute("""SELECT path FROM data_index 
@@ -256,18 +260,19 @@ class IndexCassandra():
             query = SimpleStatement("""
             UPDATE data_index 
             SET path = path + %(p)s,
+            SET site = site + %(site)s,
             execution_data = %(ed)s,
             cache_data = %(cd)s
             WHERE data_id=%(d_id)s
             """, consistency_level=ConsistencyLevel.ONE)
-            self.data_index.execute(query, dict(d_id=data_id, p=path, ed=exec_data, cd=cache_data))
+            self.data_index.execute(query, dict(d_id=data_id, p=path, site=site, ed=exec_data, cd=cache_data))
 
         else:
             query = SimpleStatement("""
-            INSERT INTO data_index (data_id, path, execution_data, cache_data)
-            VALUES (%(d_id)s, %(p)s, %(ed)s, %(cd)s)
+            INSERT INTO data_index (data_id, path, site, execution_data, cache_data)
+            VALUES (%(d_id)s, %(p)s, %(site)s, %(ed)s, %(cd)s)
             """, consistency_level=ConsistencyLevel.ONE)
-            self.data_index.execute(query, dict(d_id=data_id, p=path, ed=exec_data, cd=cache_data))
+            self.data_index.execute(query, dict(d_id=data_id, p=path, site=site, ed=exec_data, cd=cache_data))
 
     def remove_site(self, data_id="", path=""):
         if type(path) is not set:
@@ -338,6 +343,17 @@ class IndexCassandra():
         for i in r:
             if i:
                 return i.path[0]
+            else:
+                return False
+
+    def get_site(self, data_id):
+        query = """SELECT site FROM data_index
+        WHERE data_id=%s
+        """
+        r = self.data_index.execute(query, [data_id])
+        for i in r:
+            if i:
+                return i.site[0]
             else:
                 return False
 
