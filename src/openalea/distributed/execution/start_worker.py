@@ -6,7 +6,7 @@ import json
 home = expanduser("~")
 tpath = os.path.join(home, "data/mydatalocal")  
 
-with open('tmp.json', 'r') as f:
+with open(os.path.join(home,'tmp.json'), 'r') as f:
     kwargs = json.load(f)
 
 start_workers(cache_path=tpath, **kwargs)
