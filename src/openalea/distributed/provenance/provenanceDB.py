@@ -41,6 +41,18 @@ class ProvFile():
             print('Fail to open prov files. - Now write prov in : ', prov_path)
             with open(prov_path, 'a+') as fp:
                 json.dump(item, fp, indent=4)
+
+    def add_execution_item(self,item, *args, **kwargs):
+        try:
+            prov_path = os.path.join(self.localpath, str(item["workflow_id"]) + '.json')
+            with open(prov_path, 'a+') as fp:
+                json.dump(item, fp, indent=4)
+        except:
+            prov_path = path(settings.get_openalea_home_dir()) / 'provenance' / 'execution_provenance.json'
+            print('Fail to open prov files. - Now write prov in : ', prov_path)
+            with open(prov_path, 'a+') as fp:
+                json.dump(item, fp, indent=4)
+
     
     def is_in(self, task_id=None, wf_id=None):
         pass
@@ -284,6 +296,46 @@ class ProvCassandra():
             self.client.execute(query, dict(id=id, wf=workflow,
             t_i=time_init, t_e=time_end, d=data, p=parameters, e=executions))
 
+    def add_execution_item(self, item, *args, **kwargs):
+        # FIRST: FORMAT INPUT:
+        execution_id = str(item['execution_id'])
+        workflow_id = str(item['workflow_id'])
+        makespan = float(item['makespan'])
+        input_size = float(item['input_size'])
+        data_tranfered = float(item['data_tranfered'])
+        time_transfer = float(item['time_transfer'])
+        time_communication = float(item['time_communication'])
+        site = str(item['site'])
+        time_initialization = float(item['time_initialization'])
+        time_connectdb = float(item['time_connectdb'])
+        task_exec = json.dumps(item['task_exec'])
+        task_reuse = json.dumps(item['task_reuse'])
+
+        # IF there is an entry for this task: update
+        # TODO: Update task provenace database when taks is recomputed
+        row = self.client.execute("""SELECT execution_id FROM execution_provenance 
+        WHERE execution_id=%s""", [execution_id])
+        if row:
+            pass
+        #     query = SimpleStatement("""
+        #     UPDATE task_provenance 
+        #     SET path = path + %(p)s
+        #     WHERE data_id=%(d_id)s
+        #     """, consistency_level=ConsistencyLevel.ONE)
+        #     self.data_index.execute(query, dict(d_id=data_id, p=path))
+
+        else:
+            query = SimpleStatement("""
+            INSERT INTO execution_provenance (execution_id, workflow_id, makespan, input_size,
+            data_tranfered, time_transfer, time_communication, site, time_initialization,
+            time_connectdb, task_exec, task_reuse)
+            VALUES (%(id)s, %(wf)s, %(mks)s, %(i_s)s, %(d_t)s, %(t_t)s, %(t_c)s, %(s)s,
+            %(t_i)s, %(t_cdb)s, %(t_e)s, %(t_r)s)
+            """, consistency_level=ConsistencyLevel.ONE)
+            self.client.execute(query, dict(id=execution_id, wf=workflow_id, mks=makespan, i_s=input_size,
+            d_t=data_tranfered, t_t=time_transfer, t_c=time_communication, s=site, t_i=time_initialization,
+            t_cdb=time_connectdb, t_e=task_exec, t_r=task_reuse))
+
     def show(self):
         count = self.client.execute("select count(*) from task_provenance")[0].count
         print "The task provenance has: ", count, " entries."
@@ -306,6 +358,20 @@ class ProvCassandra():
             if wfs:
                 for wf in wfs:
                     print "workflow: ", str(wf.workflow), " id : ", str(wf.id)
+
+    def show_executions(self):
+        count = self.client.execute("select count(*) from execution_provenance")[0].count
+        print "The execution provenance has: ", count, " entries."
+        if count == 0:
+            return
+        else:
+            query = "SELECT * FROM task_provenance"
+            execution = self.client.execute(query)
+            if tasks:
+                for task in tasks:
+                    print "ID: ", execution.execution_id, " workflow_id: ", str(execution.workflow_id), \
+                        " makespan: ", str(execution.makespan), " site: ", str(execution.site)
+
 
     def start_sshtunnel(self, *args, **kwargs):
         try:
@@ -372,6 +438,23 @@ class ProvCassandra():
             parameters text,
             executions text,
             PRIMARY KEY (workflow) 
+            )"""
+            self.client.execute(cmd)
+
+            cmd = """CREATE TABLE IF NOT EXISTS execution_provenance ( 
+            execution_id text, 
+            workflow_id text,
+            makespan float,
+            input_size float,
+            data_tranfered float,
+            time_transfer float,
+            time_communication float,
+            site text,
+            time_initialization float,
+            time_connectdb float,
+            task_exec text,
+            task_reuse text,
+            PRIMARY KEY (execution_id) 
             )"""
             self.client.execute(cmd)
 
