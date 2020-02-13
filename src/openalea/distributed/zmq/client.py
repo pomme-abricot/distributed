@@ -6,8 +6,8 @@ import multiprocessing
 from openalea.distributed.zmq.client_config import BROKER_ADDR
 
 
-def start(task, *args):
-    process = multiprocessing.Process(target=task, args=args)
+def start(task, name, *args, **kwargs):
+    process = multiprocessing.Process(target=task, name=name, args=args, kwargs=kwargs)
     process.daemon = True
     process.start()
 
@@ -26,7 +26,7 @@ def client_task_fragmenteval(ident, frag, path_out):
     print(reply)
 
 
-def client_task_bruteval(ident, num_plant):
+def client_task_bruteval(ident, num_plant, **kwargs):
     """Basic request-reply client using REQ socket."""
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
