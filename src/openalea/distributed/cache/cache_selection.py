@@ -1,5 +1,6 @@
 
 
+import json
 def cache_add_selection(node_metadata, cache_method):
     if cache_method == "adaptive":
         # TODO: implement the selection for real
