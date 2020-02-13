@@ -45,7 +45,6 @@ def get_cache_site(cache_site_method, current_site, data_metadata, cloudsite):
         lsites={}
         for s in sites:
             lsites[s.site] = s.storage_available
-            return max(lsites, key=lsites.get)
         # get a dict of transfer rate of site with enough available storage
         r = cloudsite.get_transfer_rate(site=current_site)
         tr = json.loads(r[0].transfer_rate)
