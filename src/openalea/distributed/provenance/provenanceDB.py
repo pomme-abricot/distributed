@@ -11,9 +11,11 @@ from cassandra import ConsistencyLevel
 
 import json
 import imp
+import glob
 import os
 from openalea.core.path import path
 from openalea.core import settings
+import pandas as pd
 
 
 class ProvFile():
@@ -24,41 +26,100 @@ class ProvFile():
         try:
             prov_path = os.path.join(self.localpath, str(item["task_id"]) + '.json')
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
         except:
-            prov_path = path(settings.get_openalea_home_dir()) / 'provenance' / 'task_provenance.json'
+            prov_path = os.path.join(settings.get_openalea_home_dir(), 'provenance', 'task_provenance.json')
             print('Fail to open prov files. - Now write prov in : ', prov_path)
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
 
     def add_wf_item(self, item, *args, **kwargs):
         try:
             prov_path = os.path.join(self.localpath, str(item["workflow"]) + '.json')
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
+            print('Provenance written at :', prov_path)
         except:
-            prov_path = path(settings.get_openalea_home_dir()) / 'provenance' / 'wf_provenance.json'
+            prov_path = os.path.join(settings.get_openalea_home_dir(), 'provenance', 'wf_provenance.json')
             print('Fail to open prov files. - Now write prov in : ', prov_path)
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
 
     def add_execution_item(self,item, *args, **kwargs):
         try:
             prov_path = os.path.join(self.localpath, str(item["workflow_id"]) + '.json')
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
         except:
-            prov_path = path(settings.get_openalea_home_dir()) / 'provenance' / 'execution_provenance.json'
+            prov_path = os.path.join(settings.get_openalea_home_dir(), 'provenance', 'execution_provenance.json')
             print('Fail to open prov files. - Now write prov in : ', prov_path)
             with open(prov_path, 'a+') as fp:
-                json.dump(item, fp, indent=4)
+                json.dump(item, fp)
+                fp.write("\n")
 
     
     def is_in(self, task_id=None, wf_id=None):
-        pass
+        # check if the file with corresponding id exists
+        # Return True if it is in
+        if task_id:
+            path_task = os.path.join(self.localpath, str(task_id) + '.json')
+            if os.path.isfile(path_task):
+                return True
+            # if not os.path.isfile(path_task):
+            #     return False
+            # else:
+            #     df = pd.DataFrame()
+            #     with open(t_path, 'r') as f:
+            #         for line in f.readlines():
+            #             s = pd.Series(json.loads(line))
+            #             df = df.append(s, ignore_index=True)
+            #     return True
+        else:
+            return False
+        
+    def get_metadata(self, task_id=None, vid=None):
+        """ Return a dict with the provenance metadata of the task
+        Inputs : [str] taskid - the id of the task
+                 [Int] vid - the vid of the activity
+        Outputs: [dict] - a dict with 'exec_time', 'size_in', 'size_out', 
+        """
+        # if vid is given - get the metadata of all task with same vid
+        if vid:
+            pass
+            
+        # if a task id is given - get the vid to get all task exec with the same vid
+        elif task_id:
+            path_task = os.path.join(self.localpath, str(task_id) + '.json')
+            if not os.path.isfile(path_task):
+                return False
+            else:
+                df = pd.DataFrame()
+                with open(path_task, 'r') as f:
+                    for line in f.readlines():
+                        s = pd.Series(json.loads(line))
+                        df = df.append(s, ignore_index=True)
+                metadata = {}
+                metadata['exec_time'] = df['cpu_time'].mean()
+                metadata['size_input']= df['size_input'].mean()
+                metadata['size_output']= df['size_output'].mean()
+                
+                return metadata
+        else:
+            return False
 
     def show(self):
-        pass
+        all_prov = glob.glob(os.path.join(self.localpath, "*.json"))
+        print "The index has: ", len(all_prov), " entries."
+        if len(all_prov) == 0:
+            return
+        else:
+            for prov in all_prov:
+                print prov
 
     def remove_all_item(self):
         pass
@@ -211,6 +272,14 @@ class ProvCassandra():
 
     def __set__(self, instance, value):
         self.instance = value
+
+    
+    def get_metadata(taskid=None):
+        """ Return a dict with the provenance metadata of the task
+        Inputs : [str] taskid - the id of the task
+        Outputs: [dict] - a dict with 'exec_time', 'size_in', 'size_out', 
+        """
+        pass
 
     def is_in(self, task_id=None, wf_id=None):
         # check if in cassandra

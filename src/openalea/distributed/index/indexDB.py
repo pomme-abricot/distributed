@@ -1,6 +1,12 @@
 import csv
 import os.path
 import os
+import glob
+import json
+import pandas as pd
+
+from openalea.core.path import path
+from openalea.core import settings
 
 from cassandra.cluster import Cluster
 # from cassandra.policies import DCAwareRoundRobinPolicy
@@ -101,17 +107,87 @@ class IndexFile(object):
 
     def __init__(self, irods_sess=None, algo=None, method=None):
         self.irods_sess = irods_sess
-        self.algo = algo
-        self.method = method
-
-    def is_in(self, path_to_data):
-        if self.method == "IRODS":
-            return self.irods_sess.data_objects.exists(path_to_data)
-        elif (self.method == "cluster") or (self.method == "local"):
-            return os.path.isfile(path_to_data)
+        self.path = None
+        self.data_index = None
+        self.remote = None
 
     def __set__(self, instance, value):
         self.instance = value
+
+    def init(self, *args, **kwargs):
+        path_config =  kwargs.get('index_config', None)
+        if path_config == None:
+            import openalea.distributed.index.index_config as index_config
+        else:
+            index_config = imp.load_source('index_config', path_config)
+            import index_config
+        print("Load index config from : ", index_config.__file__)
+        self.remote=False
+        self.path=index_config.INDEX_PATH
+
+    def is_in(self, data_id):
+        if self.find_one(data_id):
+            return self.find_one(data_id)["path"][0]
+        else:
+            return False
+
+    def add_data(self, data_id="", path="", site="", exec_data=False, cache_data=False, *args, **kwargs):
+        # FIRST: FORMAT INPUT:
+        ind = {"data_id":data_id, "path":path, "site": site, "exec_data": exec_data, "cache_data":cache_data}
+        try:
+            index_path = os.path.join(self.path, str(data_id + '.json'))
+            with open(index_path, 'a+') as fp:
+                json.dump(ind, fp)
+                fp.write("\n")
+        except:
+            index_path = os.path.join(settings.get_openalea_home_dir(), 'index_default.json')
+            print('Fail to open index files. - Now write index in : ', index_path)
+            with open(index_path, 'a+') as fp:
+                json.dump(ind, fp)
+                fp.write("\n")
+
+
+    def remove_site(self, data_id="", path=""):
+        pass
+
+    def remove_one_data(self, data_id="", site="", node=""):
+        pass
+
+    def remove_all_data(self):
+        pass
+
+    def show_all(self):
+        all_index = glob.glob(os.path.join(self.path, "*.json"))
+        print "The index has: ", len(all_index), " entries."
+        if len(all_index) == 0:
+            return
+        else:
+            for ind in all_index:
+                print ind
+
+    def find_one(self, data_id):
+        path_index = os.path.join(self.path, str(data_id) + '.json')
+        if not os.path.isfile(path_index):
+            return False
+        else:
+            df = pd.DataFrame()
+            with open(path_index, 'r') as f:
+                for line in f.readlines():
+                    s = pd.Series(json.loads(line))
+                    df = df.append(s, ignore_index=True)
+            data_metadata = {}
+            data_metadata['data_id']= df['data_id']
+            data_metadata['path']= df['path']
+            data_metadata['site']= df['site']
+            data_metadata['exec_data']= df['exec_data']
+            data_metadata['cache_data']= df['cache_data']
+        return data_metadata
+
+    def empty(self):
+        return not os.listdir(self.path)
+
+    def all_files_id(self):
+        self.show_all() 
 
 
 class IndexMongoDB(object):
